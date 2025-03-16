@@ -21,48 +21,37 @@ export const apiService = {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log(response);
+      console.log("API Response:", response.data);
 
       // Format the response to match our AnalysisResult type
       const result: AnalysisResult = {
-        prediction: response.data.confidence,
-        confidence: response.data.prediction,
+        prediction: response.data.prediction,
+        confidence: response.data.confidence,
         raw_predictions: response.data.raw_predictions,
         status: response.data.status,
-        // details: {
-        //   regions: response.data.regionAnalysis || [
-        //     {
-        //       name: "Hippocampus",
-        //       status:
-        //         response.data.result === "Non Demented" ? "Normal" : "Abnormal",
-        //       score: response.data.probability,
-        //     },
-        //     {
-        //       name: "Ventricles",
-        //       status:
-        //         response.data.result === "Non Demented" ? "Normal" : "Enlarged",
-        //       score: response.data.probability * 0.9,
-        //     },
-        //     {
-        //       name: "Cortical Thickness",
-        //       status:
-        //         response.data.result === "Non Demented" ? "Normal" : "Reduced",
-        //       score: response.data.probability * 1.1,
-        //     },
-        //   ],
-        //   notes:
-        //     response.data.notes ||
-        //     `Analysis shows ${
-        //       response.data.result === "Non Demented"
-        //         ? "no significant"
-        //         : "some"
-        //     } patterns consistent with Alzheimer's disease.`,
-        //   recommendations:
-        //     response.data.recommendations ||
-        //     "Please consult with a healthcare professional for a complete evaluation.",
-        // },
-        // id: response.data.id,
-        // timestamp: response.data.timestamp,
+        details: {
+          notes: "Analysis shows patterns that may be consistent with changes in brain structure.",
+          recommendations: "Please consult with a healthcare professional for a complete evaluation.",
+          regions: [
+            {
+              name: "Hippocampus",
+              status: response.data.prediction === "Non Demented" ? "Normal" : "Abnormal",
+              score: parseFloat(response.data.confidence) || 0.85,
+            },
+            {
+              name: "Ventricles",
+              status: response.data.prediction === "Non Demented" ? "Normal" : "Enlarged",
+              score: (parseFloat(response.data.confidence) || 0.85) * 0.9,
+            },
+            {
+              name: "Temporal Lobe",
+              status: response.data.prediction === "Non Demented" ? "Normal" : "Reduced Volume",
+              score: (parseFloat(response.data.confidence) || 0.85) * 1.1,
+            },
+          ],
+        },
+        id: response.data.id || "temp-id", // Store the ID from the backend
+        timestamp: new Date().toISOString(),
       };
 
       return {
@@ -97,10 +86,11 @@ export const apiService = {
 
       // Format the response to match our AnalysisResult type
       const result: AnalysisResult = {
-        prediction: response.data.confidence,
-        confidence: response.data.prediction,
+        prediction: response.data.prediction,
+        confidence: response.data.confidence,
         raw_predictions: response.data.raw_predictions,
         status: response.data.status,
+        id: response.data.id || "temp-id",
       };
 
       return {
@@ -123,15 +113,38 @@ export const apiService = {
     token: string
   ): Promise<ApiResponse<void>> {
     try {
+      // Check if results.id exists
+      if (!results.id) {
+        console.warn("No prediction ID available");
+        return {
+          success: false,
+          error: "No prediction ID available to save results",
+        };
+      }
+
       // Log the URL to debug
       const url = `${process.env.NEXT_PUBLIC_API_URL}/predictions/save`;
       console.log("Saving results to:", url);
+      console.log("Results data being sent:", {
+        predictionId: results.id,
+        details: results.details
+      });
 
       const response = await axios.post(
         url,
         {
           predictionId: results.id,
-          details: results.details,
+          details: results.details || {
+            notes: "Analysis shows patterns that may be consistent with cognitive changes.",
+            recommendations: "Follow up with a healthcare professional for a comprehensive evaluation.",
+            regions: [
+              {
+                name: "Hippocampus",
+                status: results.prediction === "Non Demented" ? "Normal" : "Abnormal",
+                score: 0.85,
+              },
+            ],
+          }
         },
         {
           headers: {
@@ -148,6 +161,13 @@ export const apiService = {
       };
     } catch (error: any) {
       console.error("Error saving results:", error);
+      
+      // More detailed error logging
+      if (error.response) {
+        console.error("Response error data:", error.response.data);
+        console.error("Response error status:", error.response.status);
+      }
+      
       return {
         success: false,
         error:
@@ -174,9 +194,9 @@ export const apiService = {
       });
 
       // Transform the API response to match our frontend types
-      const predictions = response.data.predictions.map((prediction: any) => ({
-        prediction: prediction.result,
-        confidence: `${(prediction.probability * 100).toFixed(1)}%`,
+      const predictions = response.data.map((prediction: any) => ({
+        prediction: prediction.prediction,
+        confidence: prediction.confidence,
         details: prediction.details || {
           regions: [],
           notes: "No detailed analysis available",

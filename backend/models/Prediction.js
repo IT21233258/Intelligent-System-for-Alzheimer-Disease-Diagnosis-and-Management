@@ -8,10 +8,14 @@ const predictionSchema = new mongoose.Schema({
   prediction: String,
   confidence: Number,
   imageUrl: String,
+  details: {
+    type: Object,
+    default: null
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 
   }
 });
 
-export default mongoose.model('Prediction', predictionSchema);
+export default mongoose.models.Prediction || mongoose.model('Prediction', predictionSchema);

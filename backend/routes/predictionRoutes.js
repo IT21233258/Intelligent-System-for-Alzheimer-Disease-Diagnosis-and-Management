@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { createPrediction, getUserPredictions } from '../controllers/predictionController.js';
+import { createPrediction, getUserPredictions, saveResults } from '../controllers/predictionController.js';
 import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -19,5 +19,6 @@ const upload = multer({
 
 router.post('/', auth, upload.single('image'), createPrediction);
 router.get('/history', auth, getUserPredictions);
+router.post('/save', auth, saveResults); // New endpoint for saving results
 
 export default router;

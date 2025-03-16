@@ -18,9 +18,9 @@ export interface RawPredictions {
 
 export interface AnalysisResult {
   prediction: string;
-  confidence: number;
-  raw_predictions: RawPredictions;
-  status: string;
+  confidence: number | string; // Updated to accept both number and string for flexibility
+  raw_predictions?: RawPredictions; // Made optional as it may not always be present
+  status?: string; // Made optional for compatibility
   id?: string;
   timestamp?: string;
   details?: AnalysisDetails;
@@ -59,4 +59,15 @@ export interface ApiResponse<T> {
 
 export interface PredictionHistoryResponse {
   predictions: Prediction[];
+}
+
+// Additional type for authentication context if needed
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  register?: (name: string, email: string, password: string) => Promise<boolean>;
+  isLoading?: boolean;
+  error?: string | null;
 }
